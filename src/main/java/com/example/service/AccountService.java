@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.factory.AccountFactory;
 import com.example.model.Account;
 import com.example.model.AccountRequest;
 import com.example.repository.AccountRepository;
@@ -21,7 +22,7 @@ public class AccountService {
     private final NbpExchangeService nbpExchangeService;
 
     public Account createAccount(AccountRequest request) {
-        Account account = Account.createNewAccount(
+        Account account = AccountFactory.createNewAccount(
                 request.getFirstName(),
                 request.getLastName(),
                 request.getInitialPlnBalance()
