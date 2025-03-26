@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -63,9 +64,9 @@ public class AccountControllerTest {
                         .content(objectMapper.writeValueAsString(testAccountRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(ACCOUNT_ID))
-                .andExpect(jsonPath("$.firstName").value("Jan"))
-                .andExpect(jsonPath("$.lastName").value("Kowalski"))
-                .andExpect(jsonPath("$.plnBalance").value(1000));
+                .andExpect(jsonPath("$.fullName").value("Jan Kowalski"))
+                .andExpect(jsonPath("$.plnBalance").value(1000))
+                .andExpect(jsonPath("$.usdBalance").value(0));
     }
 
     @Test
@@ -75,9 +76,9 @@ public class AccountControllerTest {
         mockMvc.perform(get("/api/v1/accounts/{accountId}", ACCOUNT_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ACCOUNT_ID))
-                .andExpect(jsonPath("$.firstName").value("Jan"))
-                .andExpect(jsonPath("$.lastName").value("Kowalski"))
-                .andExpect(jsonPath("$.plnBalance").value(1000));
+                .andExpect(jsonPath("$.fullName").value("Jan Kowalski"))
+                .andExpect(jsonPath("$.plnBalance").value(1000))
+                .andExpect(jsonPath("$.usdBalance").value(0));
     }
 
     @Test
@@ -92,9 +93,17 @@ public class AccountControllerTest {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        when(accountService.exchangeCurrency(ACCOUNT_ID)).thenReturn(updatedAccount);
+        when(accountService.exchangeCurrency(
+                eq(ACCOUNT_ID),
+                eq("PLN"),
+                eq("USD"),
+                eq(BigDecimal.valueOf(1000))
+        )).thenReturn(updatedAccount);
 
-        mockMvc.perform(post("/api/v1/accounts/exchange/{accountId}", ACCOUNT_ID))
+        mockMvc.perform(post("/api/v1/accounts/exchange/{accountId}", ACCOUNT_ID)
+                        .param("currencyFrom", "PLN")
+                        .param("currencyTo", "USD")
+                        .param("amount", "1000"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(ACCOUNT_ID))
                 .andExpect(jsonPath("$.plnBalance").value(0))

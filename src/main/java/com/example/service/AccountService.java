@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.exception.AccountBalanceException;
 import com.example.factory.AccountFactory;
 import com.example.model.Account;
 import com.example.model.AccountRequest;
@@ -36,35 +37,43 @@ public class AccountService {
     }
 
     @Transactional
-    public Account exchangeCurrency(String accountId) {
+    public Account exchangeCurrency(String accountId, String currencyFrom, String currencyTo, BigDecimal amount) {
         Account account = getAccount(accountId);
 
-        if (account.getUsdBalance().compareTo(BigDecimal.ZERO) == 0) {
-            return exchangePlnToUsd(account);
-        } else {
-            return exchangeUsdToPln(account);
+        validateCurrencyExchange(account, currencyFrom, currencyTo, amount);
+
+        return updateAccountBalances(account, currencyFrom, currencyTo, amount);
+    }
+
+    private void validateCurrencyExchange(Account account, String currencyFrom, String currencyTo, BigDecimal amount) {
+        BigDecimal currentBalance = getCurrentBalanceForUSD(account, currencyFrom);
+
+        if (currentBalance.compareTo(amount) < 0) {
+            throw new AccountBalanceException("Not enough funds on Your account!");
+        }
+
+        if (currencyFrom.equals(currencyTo)) {
+            throw new AccountBalanceException("Cannot exchange to the same currency!");
         }
     }
 
-    private Account exchangePlnToUsd(Account account) {
-        log.info("Exchanging from PLN to USD");
-        BigDecimal usdAmount = nbpExchangeService.exchangePlnToUsd(account.getPlnBalance());
+    private Account updateAccountBalances(Account account, String currencyFrom, String currencyTo, BigDecimal amount) {
+        BigDecimal exchangedAmount = nbpExchangeService.exchange(currencyFrom, currencyTo, amount);
 
-        account.setPlnBalance(BigDecimal.ZERO);
-        account.setUsdBalance(account.getUsdBalance().add(usdAmount));
+        if (currencyFrom.equals("USD")) {
+            account.setUsdBalance(account.getUsdBalance().subtract(amount));
+            account.setPlnBalance(account.getPlnBalance().add(exchangedAmount));
+        } else {
+            account.setPlnBalance(account.getPlnBalance().subtract(amount));
+            account.setUsdBalance(account.getUsdBalance().add(exchangedAmount));
+        }
+
         account.setUpdatedAt(LocalDateTime.now());
 
         return accountRepository.save(account);
     }
 
-    private Account exchangeUsdToPln(Account account) {
-        log.info("Exchanging from USD to PLN");
-        BigDecimal plnAmount = nbpExchangeService.exchangeUsdToPln(account.getUsdBalance());
-
-        account.setUsdBalance(BigDecimal.ZERO);
-        account.setPlnBalance(account.getPlnBalance().add(plnAmount));
-        account.setUpdatedAt(LocalDateTime.now());
-
-        return accountRepository.save(account);
+    private BigDecimal getCurrentBalanceForUSD(Account account, String currencyFrom) {
+        return currencyFrom.equals("USD") ? account.getUsdBalance() : account.getPlnBalance();
     }
 }
