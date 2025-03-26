@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.exception.AccountBalanceException;
 import com.example.model.Account;
 import com.example.model.AccountRequest;
 import com.example.repository.AccountRepository;
@@ -89,25 +90,23 @@ public class AccountServiceTest {
     }
 
     @Test
-    void shouldExchangePlnToUsd() {
+    void shouldExchangeFromPlnToUsd() {
         BigDecimal plnBalance = BigDecimal.valueOf(PLN_BALANCE);
         BigDecimal usdAmount = BigDecimal.valueOf(USD_BALANCE);
 
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(testAccount));
-        when(nbpExchangeService.exchangePlnToUsd(plnBalance)).thenReturn(usdAmount);
+        when(nbpExchangeService.exchange("PLN", "USD", plnBalance)).thenReturn(usdAmount);
         when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
 
-        Account result = accountService.exchangeCurrency(ACCOUNT_ID);
+        Account result = accountService.exchangeCurrency(ACCOUNT_ID, "PLN", "USD", plnBalance);
 
         assertNotNull(result);
-        assertEquals(BigDecimal.ZERO, result.getPlnBalance());
-        assertEquals(usdAmount, result.getUsdBalance());
-        verify(nbpExchangeService, times(1)).exchangePlnToUsd(plnBalance);
+        verify(nbpExchangeService, times(1)).exchange(eq("PLN"), eq("USD"), eq(plnBalance));
         verify(accountRepository, times(1)).save(any(Account.class));
     }
 
     @Test
-    void shouldExchangeUsdToPln() {
+    void shouldExchangeFromUsdToPln() {
         BigDecimal usdBalance = BigDecimal.valueOf(USD_BALANCE);
         BigDecimal plnAmount = BigDecimal.valueOf(PLN_BALANCE);
 
@@ -122,15 +121,24 @@ public class AccountServiceTest {
                 .build();
 
         when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(accountWithUsd));
-        when(nbpExchangeService.exchangeUsdToPln(usdBalance)).thenReturn(plnAmount);
+        when(nbpExchangeService.exchange("USD", "PLN", usdBalance)).thenReturn(plnAmount);
         when(accountRepository.save(any(Account.class))).thenReturn(accountWithUsd);
 
-        Account result = accountService.exchangeCurrency(ACCOUNT_ID);
+        Account result = accountService.exchangeCurrency(ACCOUNT_ID, "USD", "PLN", usdBalance);
 
         assertNotNull(result);
-        assertEquals(plnAmount, result.getPlnBalance());
-        assertEquals(BigDecimal.ZERO, result.getUsdBalance());
-        verify(nbpExchangeService, times(1)).exchangeUsdToPln(usdBalance);
+        verify(nbpExchangeService, times(1)).exchange(eq("USD"), eq("PLN"), eq(usdBalance));
         verify(accountRepository, times(1)).save(any(Account.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenNotEnoughBalance() {
+        BigDecimal exchangeAmount = BigDecimal.valueOf(2000);
+
+        when(accountRepository.findById(ACCOUNT_ID)).thenReturn(Optional.of(testAccount));
+
+        assertThrows(AccountBalanceException.class, () ->
+                accountService.exchangeCurrency(ACCOUNT_ID, "PLN", "USD", exchangeAmount)
+        );
     }
 }
