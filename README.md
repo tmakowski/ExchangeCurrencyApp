@@ -28,16 +28,16 @@ Aplikacja REST API do zarządzania kontami walutowymi oraz wymiany walut PLN <->
 
 
 ### 2. Wymiana PLN -> USD
-**Endpoint:** `POST /api/exchange/{accountId}`
+Kod waluty z której i na k†óra chcemy przeliczyć, 
+a także ilość powinna zostać podana jako parametry.
+Tak jak zrobiono to poniżej.  
+**Endpoint:** `POST /api/exchange/{accountId}?currencyFrom=PLN&currencyTo=USD&amount=500`
 
 {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "firstName": "Jan",
-    "lastName": "Kowalski",
+    "fullName": "Jan Kowalski",
     "plnBalance": 0,
-    "usdBalance": 129.96,
-    "createdAt": "2025-03-20T11:02:04.59064",
-    "updatedAt": "2025-03-20T11:19:29.788209"
+    "usdBalance": 129.96
 }
 
 
@@ -46,10 +46,7 @@ Aplikacja REST API do zarządzania kontami walutowymi oraz wymiany walut PLN <->
 
 {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "firstName": "Jan",
-    "lastName": "Kowalski",
+    "fullName": "Jan Kowalski",
     "plnBalance": 500.00,
-    "usdBalance": 0.00,
-    "createdAt": "2025-03-20T11:02:04.59064",
-    "updatedAt": "2025-03-20T11:03:33.54693"
+    "usdBalance": 0.00
 }
